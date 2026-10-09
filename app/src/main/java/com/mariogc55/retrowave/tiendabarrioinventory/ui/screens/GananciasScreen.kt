@@ -1,10 +1,20 @@
 package com.mariogc55.retrowave.tiendabarrioinventory.ui.screens
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.*
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -17,28 +27,22 @@ import com.mariogc55.retrowave.tiendabarrioinventory.model.ComparacionMensual
 
 @Composable
 fun GananciasScreen() {
-    // ===== Valores de ejemplo del mes actual (RF-10) =====
-    // En una app real vendrían de las ventas y gastos registrados
-    val ingresosMes = 3500000.0      // Suma de todas las ventas del mes
-    val gastosMes = 1545000.0        // Suma de todos los gastos del mes (coincide con RF-09)
-    val costoVentas = 1800000.0      // Suma del precio de compra de los productos vendidos
+    val ingresosMes = 3500000.0
+    val gastosMes = 1545000.0
+    val costoVentas = 1800000.0
 
-    // RF-10: ganancia_neta = ingresos − gastos
     val gananciaNeta = ingresosMes - gastosMes
 
-    // RF-10: margen_bruto = ((ingresos − costo_ventas) / ingresos) × 100
     val margenBruto = if (ingresosMes > 0) {
         ((ingresosMes - costoVentas) / ingresosMes) * 100
     } else {
         0.0
     }
 
-    // ===== RF-11: Datos del mes anterior para comparación =====
     val ingresosMesAnterior = 2400000.0
     val gastosMesAnterior = 1200000.0
     val gananciaNetaMesAnterior = ingresosMesAnterior - gastosMesAnterior
 
-    // RF-11: Comparaciones calculadas
     val comparacionIngresos = CalculadoraComparacion.calcular(
         mesActual = "Oct 2026",
         mesAnterior = "Sep 2026",
@@ -65,7 +69,7 @@ fun GananciasScreen() {
 
     Surface(
         modifier = Modifier.fillMaxSize(),
-        color = DarkBackground  // Importado desde MainDashboardScreen.kt (mismo package)
+        color = DarkBackground
     ) {
         Column(
             modifier = Modifier
@@ -82,39 +86,34 @@ fun GananciasScreen() {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // ===== Tarjeta de ingresos (RF-10) =====
             CardGanancia(
                 titulo = "Ingresos",
-                valor = "$${"%,.0f".format(ingresosMes)}"
+                valor = "$" + "%,.0f".format(ingresosMes)
             )
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // ===== Tarjeta de gastos (RF-10) =====
             CardGanancia(
                 titulo = "Gastos",
-                valor = "$${"%,.0f".format(gastosMes)}"
+                valor = "$" + "%,.0f".format(gastosMes)
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // ===== Tarjeta de ganancia neta destacada (RF-10) =====
             CardGananciaDestacada(
                 titulo = "Ganancia Neta",
-                valor = "$${"%,.0f".format(gananciaNeta)}"
+                valor = "$" + "%,.0f".format(gananciaNeta)
             )
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // ===== Tarjeta de margen bruto (RF-10) =====
             CardGananciaDestacada(
                 titulo = "Margen Bruto",
-                valor = "${"%.1f".format(margenBruto)}%"
+                valor = "%.1f".format(margenBruto) + "%"
             )
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // ===== RF-11: Sección de comparación mes actual vs anterior =====
             Text(
                 text = "ESTE MES VS MES ANTERIOR",
                 fontSize = 13.sp,
@@ -124,7 +123,6 @@ fun GananciasScreen() {
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Verificar si hay datos suficientes antes de mostrar comparaciones
             if (CalculadoraComparacion.hayDatosSuficientes(ingresosMes, ingresosMesAnterior)) {
                 CardComparacion(comparacion = comparacionIngresos)
                 Spacer(modifier = Modifier.height(8.dp))
@@ -149,8 +147,6 @@ fun GananciasScreen() {
         }
     }
 }
-
-// ===== Componentes auxiliares =====
 
 @Composable
 private fun CardGanancia(titulo: String, valor: String) {
@@ -196,13 +192,6 @@ private fun CardGananciaDestacada(titulo: String, valor: String) {
     }
 }
 
-/**
- * RF-11: Card que muestra la comparación entre mes actual y mes anterior.
- * - Si porcentajeCambio es null → muestra "N/A" (mes anterior = 0)
- * - Color del porcentaje:
- *     verde si subió (positivo en Ingresos/Ganancia; negativo en Gastos)
- *     rojo si bajó (negativo en Ingresos/Ganancia; positivo en Gastos)
- */
 @Composable
 private fun CardComparacion(comparacion: ComparacionMensual) {
     Card(
@@ -215,7 +204,6 @@ private fun CardComparacion(comparacion: ComparacionMensual) {
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            // Encabezado: etiqueta + valor actual
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -228,7 +216,7 @@ private fun CardComparacion(comparacion: ComparacionMensual) {
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "$${"%,.0f".format(comparacion.valorActual)}",
+                    text = "$" + "%,.0f".format(comparacion.valorActual),
                     color = Color.White,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold
@@ -237,18 +225,16 @@ private fun CardComparacion(comparacion: ComparacionMensual) {
 
             Spacer(modifier = Modifier.height(6.dp))
 
-            // Pie: valor anterior + porcentaje de cambio
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "${comparacion.mesAnterior}: $${"%,.0f".format(comparacion.valorAnterior)}",
+                    text = comparacion.mesAnterior + ": $" + "%,.0f".format(comparacion.valorAnterior),
                     color = Color.Gray,
                     fontSize = 13.sp
                 )
 
-                // RF-11: Si porcentajeCambio es null → "N/A"
                 val textoPorcentaje: String
                 val colorPorcentaje: Color
 
@@ -257,15 +243,15 @@ private fun CardComparacion(comparacion: ComparacionMensual) {
                     colorPorcentaje = Color.Gray
                 } else {
                     val signo = if (comparacion.porcentajeCambio >= 0) "↑" else "↓"
-                    textoPorcentaje = "$signo ${"%.1f".format(kotlin.math.abs(comparacion.porcentajeCambio))}%"
+                    textoPorcentaje = signo + " " + "%.1f".format(kotlin.math.abs(comparacion.porcentajeCambio)) + "%"
 
                     val subio = comparacion.porcentajeCambio >= 0
                     val esGasto = comparacion.etiqueta.contains("Gastos", ignoreCase = true)
                     colorPorcentaje = when {
-                        subio && !esGasto -> Color(0xFF10B981)   // verde: ingresos/ganancia subieron
-                        !subio && !esGasto -> Color(0xFFEF4444)  // rojo: ingresos/ganancia bajaron
-                        subio && esGasto -> Color(0xFFEF4444)    // rojo: gastos subieron
-                        else -> Color(0xFF10B981)                // verde: gastos bajaron
+                        subio && !esGasto -> Color(0xFF10B981)
+                        !subio && !esGasto -> Color(0xFFEF4444)
+                        subio && esGasto -> Color(0xFFEF4444)
+                        else -> Color(0xFF10B981)
                     }
                 }
 
