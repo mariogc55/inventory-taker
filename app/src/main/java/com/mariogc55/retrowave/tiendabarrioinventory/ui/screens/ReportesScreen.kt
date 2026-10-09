@@ -29,18 +29,6 @@ import androidx.compose.ui.unit.sp
 import com.mariogc55.retrowave.tiendabarrioinventory.model.CalculadoraResumen
 import com.mariogc55.retrowave.tiendabarrioinventory.model.ResumenMensual
 
-/**
- * RF-12: Pantalla de Reportes.
- * Muestra:
- *   - Totales históricos (ingresos, ganancia neta, gastos, total ventas)
- *   - Gráfico de barras de los últimos 6 meses
- *   - Tabla "Resumen Mensual" con columnas: Mes | Ventas | Ingresos | Ganancia
- *
- * Reglas aplicadas:
- *   - Solo se listan meses con al menos 1 venta
- *   - Orden: más reciente a más antiguo
- *   - Si no hay transacciones → mensaje "No hay transacciones registradas aún"
- */
 @Composable
 fun ReportesScreen() {
     val historial = listOf(
