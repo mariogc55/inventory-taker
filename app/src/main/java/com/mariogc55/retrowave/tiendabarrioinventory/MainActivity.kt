@@ -11,8 +11,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import com.mariogc55.retrowave.tiendabarrioinventory.model.AppDatabase
-import com.mariogc55.retrowave.tiendabarrioinventory.ui.screens.InventoryScreen
 import com.mariogc55.retrowave.tiendabarrioinventory.ui.screens.LoginScreen
+import com.mariogc55.retrowave.tiendabarrioinventory.ui.screens.MainDashboardScreen
 import com.mariogc55.retrowave.tiendabarrioinventory.ui.screens.RegisterScreen
 import com.mariogc55.retrowave.tiendabarrioinventory.ui.theme.TiendaBarrioInventoryTheme
 
@@ -41,15 +41,15 @@ fun MainAppContent(userDao: com.mariogc55.retrowave.tiendabarrioinventory.model.
             when (currentScreen) {
                 "login" -> LoginScreen(
                     userDao = userDao,
-                    onLoginSuccess = { currentScreen = "inventory" },
+                    onLoginSuccess = { currentScreen = "dashboard" },
                     onNavigateToRegister = { currentScreen = "register" }
                 )
                 "register" -> RegisterScreen(
                     userDao = userDao,
-                    onRegisterSuccess = { currentScreen = "inventory" },
+                    onRegisterSuccess = { currentScreen = "dashboard" },
                     onBackToLogin = { currentScreen = "login" }
                 )
-                "inventory" -> InventoryScreen()
+                "dashboard" -> MainDashboardScreen()
             }
         }
     }
