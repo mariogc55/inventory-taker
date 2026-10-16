@@ -1,5 +1,6 @@
 package com.mariogc55.retrowave.tiendabarrioinventory.ui.screens
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -16,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -53,6 +55,8 @@ fun InventoryScreen() {
 
     var productToDelete by remember { mutableStateOf<Product?>(null) }
     var showAddDialog by remember { mutableStateOf(false) }
+    var showScanner by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
     val filteredProducts = remember(searchQuery, productsList.toList()) {
         if (searchQuery.isBlank()) {
@@ -90,7 +94,7 @@ fun InventoryScreen() {
                 )
 
                 Surface(
-                    onClick = { /* Acción escanear */ },
+                    onClick = { showScanner = true },
                     color = ScreenCardBg,
                     shape = RoundedCornerShape(16.dp)
                 ) {
@@ -225,6 +229,21 @@ fun InventoryScreen() {
                 productsList.add(newProduct)
                 showAddDialog = false
             }
+        )
+    }
+
+    if (showScanner) {
+        EscanerScreen(
+            onCodigoDetectado = { codigo ->
+                searchQuery = codigo.valor
+                showScanner = false
+                Toast.makeText(
+                    context,
+                    "✓ ${codigo.tipo.etiqueta} detectado en ${codigo.tiempoEnSegundos}: ${codigo.valor}",
+                    Toast.LENGTH_SHORT
+                ).show()
+            },
+            onCerrar = { showScanner = false }
         )
     }
 }
