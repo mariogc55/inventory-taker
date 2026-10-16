@@ -70,4 +70,5 @@ dependencies {
     implementation(libs.androidx.camera.view)
     implementation(libs.mlkit.barcode.scanning)
     implementation(libs.androidx.exifinterface)
+    implementation(libs.coil.compose)
 }

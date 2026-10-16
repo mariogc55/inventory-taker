@@ -1,6 +1,9 @@
 package com.mariogc55.retrowave.tiendabarrioinventory.ui.screens
 
+import android.net.Uri
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -23,9 +26,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.mariogc55.retrowave.tiendabarrioinventory.R
+import com.mariogc55.retrowave.tiendabarrioinventory.model.GestorFotoProducto
 import com.mariogc55.retrowave.tiendabarrioinventory.model.Product
 import com.mariogc55.retrowave.tiendabarrioinventory.ui.components.ProductCard
+import java.io.File
 import java.text.Normalizer
 
 private val ScreenDarkBg = Color(0xFF0B0F17)
@@ -253,12 +259,42 @@ fun AddProductDialog(
     onDismiss: () -> Unit,
     onAddProduct: (Product) -> Unit
 ) {
+    val context = LocalContext.current
+
     var name by remember { mutableStateOf("") }
     var category by remember { mutableStateOf("") }
     var stockText by remember { mutableStateOf("") }
     var purchasePriceText by remember { mutableStateOf("") }
     var sellingPriceText by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    var rutaFoto by remember { mutableStateOf<String?>(null) }
+    var archivoTemporal by remember { mutableStateOf<File?>(null) }
+    val idProducto = remember { System.currentTimeMillis().toString() }
+
+    val lanzadorCamara = rememberLauncherForActivityResult(
+        ActivityResultContracts.TakePicture()
+    ) { exito ->
+        val temporal = archivoTemporal
+        if (exito && temporal != null) {
+            rutaFoto = GestorFotoProducto.procesarYGuardar(context, idProducto, temporal)
+            if (rutaFoto == null) {
+                Toast.makeText(context, "✗ No se pudo procesar la foto", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    val lanzadorPermiso = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { concedido ->
+        if (concedido) {
+            val temporal = GestorFotoProducto.crearArchivoTemporal(context)
+            archivoTemporal = temporal
+            lanzadorCamara.launch(GestorFotoProducto.uriParaArchivo(context, temporal))
+        } else {
+            Toast.makeText(context, "✗ Se requiere permiso de cámara", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -268,6 +304,45 @@ fun AddProductDialog(
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (errorMessage != null) {
                     Text(text = errorMessage!!, color = Color(0xFFEF4444), fontSize = 12.sp)
+                }
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(56.dp)
+                            .background(Color(0xFF1E293B), RoundedCornerShape(12.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (rutaFoto != null) {
+                            AsyncImage(
+                                model = Uri.fromFile(File(rutaFoto!!)),
+                                contentDescription = "Foto del producto",
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(Color.Transparent, RoundedCornerShape(12.dp)),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Icon(Icons.Default.Add, contentDescription = null, tint = Color(0xFF64748B))
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(10.dp))
+
+                    Button(
+                        onClick = {
+                            lanzadorPermiso.launch(android.Manifest.permission.CAMERA)
+                        },
+                        modifier = Modifier.weight(1f).height(48.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E293B))
+                    ) {
+                        Text(
+                            text = if (rutaFoto != null) "Cambiar foto" else "Tomar foto",
+                            color = ScreenPrimaryBlue,
+                            fontSize = 13.sp
+                        )
+                    }
                 }
 
                 OutlinedTextField(
@@ -330,12 +405,13 @@ fun AddProductDialog(
                         else -> {
                             onAddProduct(
                                 Product(
-                                    id = System.currentTimeMillis().toString(),
+                                    id = idProducto,
                                     name = name,
                                     category = category,
                                     stock = stock,
                                     purchasePrice = purchase,
-                                    sellingPrice = selling
+                                    sellingPrice = selling,
+                                    imagePath = rutaFoto
                                 )
                             )
                         }
