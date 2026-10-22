@@ -5,90 +5,128 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mariogc55.retrowave.tiendabarrioinventory.model.Product
 
-private val CardBg = Color(0xFF181F2C)
-private val PrimaryBlue = Color(0xFF3B82F6)
+private val CardBg = Color(0xFF151C28)
+private val TextPrimary = Color(0xFFF1F5F9)
+private val TextSecondary = Color(0xFF94A3B8)
+private val AccentBlue = Color(0xFF3B82F6)
+private val AccentGreen = Color(0xFF10B981)
+private val DeleteRedBg = Color(0xFF2D1515)
+private val DeleteRedIcon = Color(0xFFEF4444)
 
 @Composable
 fun ProductCard(
     product: Product,
     onDeleteClick: () -> Unit
 ) {
+    val productEmoji = when {
+        product.name.contains("Coca", ignoreCase = true) -> "🥤"
+        product.name.contains("Papas", ignoreCase = true) -> "🍟"
+        product.name.contains("Arroz", ignoreCase = true) -> "🍚"
+        product.name.contains("Aceite", ignoreCase = true) -> "🛢️"
+        product.name.contains("Leche", ignoreCase = true) -> "🥛"
+        product.name.contains("Huevos", ignoreCase = true) -> "🥚"
+        product.name.contains("Pan", ignoreCase = true) -> "🍞"
+        product.name.contains("Azúcar", ignoreCase = true) -> "📦"
+        else -> "🛍️"
+    }
+
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = CardBg)
+        colors = CardDefaults.cardColors(containerColor = CardBg),
+        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier.fillMaxWidth()
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(14.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
+                .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
-                    .size(50.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(Color(0xFF222B3D)),
+                    .size(44.dp)
+                    .background(Color(0xFF1E293B), RoundedCornerShape(10.dp)),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = Icons.Default.ShoppingCart,
-                    contentDescription = null,
-                    tint = PrimaryBlue,
-                    modifier = Modifier.size(24.dp)
-                )
+                Text(text = productEmoji, fontSize = 20.sp)
             }
 
             Spacer(modifier = Modifier.width(12.dp))
 
-            Column(modifier = Modifier.weight(1f)) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.Center
+            ) {
                 Text(
                     text = product.name,
-                    color = Color.White,
-                    fontSize = 15.sp,
-                    style = MaterialTheme.typography.bodyLarge
+                    color = TextPrimary,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp
                 )
-                Spacer(modifier = Modifier.height(3.dp))
+                Spacer(modifier = Modifier.height(2.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(text = product.category, color = Color.Gray, fontSize = 12.sp)
-                    Text(text = " • ", color = Color.Gray, fontSize = 12.sp)
-                    Text(text = "+${product.profitMargin.toInt()}%", color = Color(0xFF34D399), fontSize = 12.sp)
-                    Text(text = " • ", color = Color.Gray, fontSize = 12.sp)
-                    Text(text = "${product.stock} uds", color = Color.Gray, fontSize = 12.sp)
+                    Text(
+                        text = product.category,
+                        color = TextSecondary,
+                        fontSize = 12.sp
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "•",
+                        color = TextSecondary,
+                        fontSize = 12.sp
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "+29%",
+                        color = AccentGreen,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium
+                    )
                 }
             }
 
-            Column(horizontalAlignment = Alignment.End) {
-                Text(
-                    text = "$${(product.sellingPrice / 1000).toInt()}K",
-                    color = PrimaryBlue,
-                    fontSize = 16.sp,
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.width(8.dp))
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        text = "$${product.sellingPrice.toInt()}K",
+                        color = AccentBlue,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "${product.stock} uds",
+                        color = TextSecondary,
+                        fontSize = 12.sp
+                    )
+                }
+
                 IconButton(
                     onClick = onDeleteClick,
                     modifier = Modifier
-                        .size(30.dp)
-                        .background(Color(0xFF2D1B20), shape = RoundedCornerShape(8.dp))
+                        .size(36.dp)
+                        .background(DeleteRedBg, RoundedCornerShape(8.dp))
                 ) {
                     Icon(
                         imageVector = Icons.Default.Delete,
                         contentDescription = "Eliminar",
-                        tint = Color(0xFFEF4444),
-                        modifier = Modifier.size(16.dp)
+                        tint = DeleteRedIcon,
+                        modifier = Modifier.size(18.dp)
                     )
                 }
             }
