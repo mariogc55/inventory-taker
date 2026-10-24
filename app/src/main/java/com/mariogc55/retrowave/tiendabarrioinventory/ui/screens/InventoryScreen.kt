@@ -31,7 +31,12 @@ import coil.compose.AsyncImage
 import com.mariogc55.retrowave.tiendabarrioinventory.R
 import com.mariogc55.retrowave.tiendabarrioinventory.model.GestorFotoProducto
 import com.mariogc55.retrowave.tiendabarrioinventory.model.Product
+import com.mariogc55.retrowave.tiendabarrioinventory.model.ProductoDto
+import com.mariogc55.retrowave.tiendabarrioinventory.model.ProductoRepository
 import com.mariogc55.retrowave.tiendabarrioinventory.ui.components.ProductCard
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.text.Normalizer
 
@@ -47,27 +52,43 @@ fun String.normalizeSearch(): String {
 
 @Composable
 fun InventoryScreen() {
-    var searchQuery by remember { mutableStateOf("") }
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
 
-    val productsList = remember {
-        mutableStateListOf(
-            Product(id = "1", name = "Coca-Cola 600ml", category = "Bebidas", stock = 24, purchasePrice = 9000.0, sellingPrice = 12000.0),
-            Product(id = "2", name = "Papas Margarita 100g", category = "Snacks", stock = 18, purchasePrice = 3500.0, sellingPrice = 5000.0),
-            Product(id = "3", name = "Arroz Diana 1kg", category = "Granos", stock = 30, purchasePrice = 5500.0, sellingPrice = 7000.0),
-            Product(id = "4", name = "Aceite Girasol 1L", category = "Abarrotes", stock = 12, purchasePrice = 12000.0, sellingPrice = 16000.0),
-            Product(id = "5", name = "Leche Lala 1L", category = "Lácteos", stock = 15, purchasePrice = 6000.0, sellingPrice = 8000.0),
-            Product(id = "6", name = "Huevos x12", category = "Lácteos", stock = 20, purchasePrice = 10000.0, sellingPrice = 14000.0)
-        )
-    }
+    var searchQuery by remember { mutableStateOf("") }
+    val productsList = remember { mutableStateListOf<Product>() }
+    var cargando by remember { mutableStateOf(true) }
+    var mensajeError by remember { mutableStateOf<String?>(null) }
 
     var productToDelete by remember { mutableStateOf<Product?>(null) }
     var showAddDialog by remember { mutableStateOf(false) }
     var showScanner by remember { mutableStateOf(false) }
-    val context = LocalContext.current
+
+    fun cargarProductos() {
+        scope.launch {
+            cargando = true
+            mensajeError = null
+            try {
+                val productos = withContext(Dispatchers.IO) {
+                    ProductoRepository.obtenerProductos()
+                }
+                productsList.clear()
+                productsList.addAll(productos.map { it.toProduct() })
+            } catch (e: Exception) {
+                mensajeError = "No se pudo conectar con el servidor"
+            } finally {
+                cargando = false
+            }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        cargarProductos()
+    }
 
     val filteredProducts = remember(searchQuery, productsList.toList()) {
         if (searchQuery.isBlank()) {
-            productsList
+            productsList.toList()
         } else {
             val query = searchQuery.normalizeSearch()
             productsList.filter { product ->
@@ -175,30 +196,60 @@ fun InventoryScreen() {
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            if (filteredProducts.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = if (searchQuery.isNotBlank()) "No se encontraron productos con ese criterio" else "No hay productos registrados",
-                        color = Color(0xFF64748B),
-                        fontSize = 14.sp
-                    )
+            when {
+                cargando -> {
+                    Box(
+                        modifier = Modifier.weight(1f).fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            CircularProgressIndicator(color = ScreenPrimaryBlue)
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Text("Cargando desde el servidor...", color = Color(0xFF64748B), fontSize = 13.sp)
+                        }
+                    }
                 }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                    contentPadding = PaddingValues(bottom = 90.dp)
-                ) {
-                    items(filteredProducts, key = { it.id }) { product ->
-                        ProductCard(
-                            product = product,
-                            onDeleteClick = { productToDelete = product }
+                mensajeError != null -> {
+                    Box(
+                        modifier = Modifier.weight(1f).fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("✗ $mensajeError", color = Color(0xFFEF4444), fontSize = 14.sp)
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Button(
+                                onClick = { cargarProductos() },
+                                colors = ButtonDefaults.buttonColors(containerColor = ScreenPrimaryBlue)
+                            ) {
+                                Text("Reintentar")
+                            }
+                        }
+                    }
+                }
+                filteredProducts.isEmpty() -> {
+                    Box(
+                        modifier = Modifier.weight(1f).fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = if (searchQuery.isNotBlank()) "No se encontraron productos con ese criterio" else "No hay productos registrados",
+                            color = Color(0xFF64748B),
+                            fontSize = 14.sp
                         )
+                    }
+                }
+                else -> {
+                    LazyColumn(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        contentPadding = PaddingValues(bottom = 90.dp)
+                    ) {
+                        items(filteredProducts, key = { it.id }) { product ->
+                            ProductCard(
+                                product = product,
+                                onDeleteClick = { productToDelete = product }
+                            )
+                        }
                     }
                 }
             }
@@ -247,9 +298,19 @@ fun InventoryScreen() {
     if (showAddDialog) {
         AddProductDialog(
             onDismiss = { showAddDialog = false },
-            onAddProduct = { newProduct ->
-                productsList.add(newProduct)
-                showAddDialog = false
+            onGuardar = { dto ->
+                scope.launch {
+                    val ok = withContext(Dispatchers.IO) {
+                        ProductoRepository.agregarProducto(dto)
+                    }
+                    showAddDialog = false
+                    if (ok) {
+                        Toast.makeText(context, "✓ Producto guardado en el servidor", Toast.LENGTH_SHORT).show()
+                        cargarProductos()
+                    } else {
+                        Toast.makeText(context, "✗ No se pudo guardar en el servidor", Toast.LENGTH_SHORT).show()
+                    }
+                }
             }
         )
     }
@@ -273,7 +334,7 @@ fun InventoryScreen() {
 @Composable
 fun AddProductDialog(
     onDismiss: () -> Unit,
-    onAddProduct: (Product) -> Unit
+    onGuardar: (ProductoDto) -> Unit
 ) {
     val context = LocalContext.current
 
@@ -419,9 +480,8 @@ fun AddProductDialog(
                         selling < purchase -> errorMessage = "El precio de venta debe ser ≥ al de compra"
                         stock < 0 -> errorMessage = "El stock debe ser un número entero ≥ 0"
                         else -> {
-                            onAddProduct(
-                                Product(
-                                    id = idProducto,
+                            onGuardar(
+                                ProductoDto(
                                     name = name,
                                     category = category,
                                     stock = stock,
