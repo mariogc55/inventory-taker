@@ -13,6 +13,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -95,9 +96,38 @@ fun InventoryScreen() {
                 Image(
                     painter = painterResource(id = R.drawable.inventory_taker_logo),
                     contentDescription = "Inventory Taker Logo",
-                    modifier = Modifier.size(140.dp, 40.dp),
+                    modifier = Modifier.size(120.dp, 36.dp),
                     contentScale = ContentScale.Fit
                 )
+
+                Icon(
+                    imageVector = Icons.Default.MoreVert,
+                    contentDescription = "Menú",
+                    tint = Color(0xFF64748B),
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Column {
+                    Text(
+                        text = "Inventario",
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = ScreenTextColor
+                    )
+                    Text(
+                        text = "${filteredProducts.size} productos",
+                        fontSize = 14.sp,
+                        color = Color(0xFF94A3B8)
+                    )
+                }
 
                 Surface(
                     onClick = { showScanner = true },
@@ -123,20 +153,6 @@ fun InventoryScreen() {
                     }
                 }
             }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Text(
-                text = "Inventario",
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                color = ScreenTextColor
-            )
-            Text(
-                text = "${filteredProducts.size} productos",
-                fontSize = 14.sp,
-                color = Color(0xFF94A3B8)
-            )
 
             Spacer(modifier = Modifier.height(12.dp))
 
