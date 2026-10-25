@@ -54,11 +54,12 @@ fun String.normalizeSearch(): String {
 fun InventoryScreen() {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val repository = remember { ProductoRepository(context) }
 
     var searchQuery by remember { mutableStateOf("") }
     val productsList = remember { mutableStateListOf<Product>() }
     var cargando by remember { mutableStateOf(true) }
-    var mensajeError by remember { mutableStateOf<String?>(null) }
+    var mensajeAviso by remember { mutableStateOf<String?>(null) }
 
     var productToDelete by remember { mutableStateOf<Product?>(null) }
     var showAddDialog by remember { mutableStateOf(false) }
@@ -67,15 +68,15 @@ fun InventoryScreen() {
     fun cargarProductos() {
         scope.launch {
             cargando = true
-            mensajeError = null
+            mensajeAviso = null
             try {
-                val productos = withContext(Dispatchers.IO) {
-                    ProductoRepository.obtenerProductos()
+                val productosLocales = withContext(Dispatchers.IO) {
+                    repository.obtenerProductos()
                 }
                 productsList.clear()
-                productsList.addAll(productos.map { it.toProduct() })
+                productsList.addAll(productosLocales.map { it.toProduct() })
             } catch (e: Exception) {
-                mensajeError = "No se pudo conectar con el servidor"
+                mensajeAviso = "Error al cargar inventario local"
             } finally {
                 cargando = false
             }
@@ -194,7 +195,24 @@ fun InventoryScreen() {
                 )
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(8.dp))
+
+            mensajeAviso?.let { aviso ->
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+                ) {
+                    Text(
+                        text = "⚠️ $aviso",
+                        color = Color(0xFFFBBF24),
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(8.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
 
             when {
                 cargando -> {
@@ -205,24 +223,7 @@ fun InventoryScreen() {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             CircularProgressIndicator(color = ScreenPrimaryBlue)
                             Spacer(modifier = Modifier.height(12.dp))
-                            Text("Cargando desde el servidor...", color = Color(0xFF64748B), fontSize = 13.sp)
-                        }
-                    }
-                }
-                mensajeError != null -> {
-                    Box(
-                        modifier = Modifier.weight(1f).fillMaxWidth(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("✗ $mensajeError", color = Color(0xFFEF4444), fontSize = 14.sp)
-                            Spacer(modifier = Modifier.height(12.dp))
-                            Button(
-                                onClick = { cargarProductos() },
-                                colors = ButtonDefaults.buttonColors(containerColor = ScreenPrimaryBlue)
-                            ) {
-                                Text("Reintentar")
-                            }
+                            Text("Cargando inventario...", color = Color(0xFF64748B), fontSize = 13.sp)
                         }
                     }
                 }
@@ -282,6 +283,7 @@ fun InventoryScreen() {
                     onClick = {
                         productsList.remove(product)
                         productToDelete = null
+                        Toast.makeText(context, "Producto eliminado", Toast.LENGTH_SHORT).show()
                     }
                 ) {
                     Text("Eliminar", color = Color(0xFFEF4444))
@@ -300,15 +302,25 @@ fun InventoryScreen() {
             onDismiss = { showAddDialog = false },
             onGuardar = { dto ->
                 scope.launch {
-                    val ok = withContext(Dispatchers.IO) {
-                        ProductoRepository.agregarProducto(dto)
+                    val exitoRemoto = withContext(Dispatchers.IO) {
+                        try {
+                            repository.agregarProducto(dto)
+                        } catch (e: Exception) {
+                            false
+                        }
                     }
+
                     showAddDialog = false
-                    if (ok) {
-                        Toast.makeText(context, "✓ Producto guardado en el servidor", Toast.LENGTH_SHORT).show()
-                        cargarProductos()
+                    val productosActualizados = withContext(Dispatchers.IO) {
+                        repository.obtenerProductos()
+                    }
+                    productsList.clear()
+                    productsList.addAll(productosActualizados.map { it.toProduct() })
+
+                    if (exitoRemoto) {
+                        Toast.makeText(context, "✓ Producto guardado en Supabase y local", Toast.LENGTH_SHORT).show()
                     } else {
-                        Toast.makeText(context, "✗ No se pudo guardar en el servidor", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "✓ Guardado localmente (sin conexión)", Toast.LENGTH_LONG).show()
                     }
                 }
             }
@@ -322,7 +334,7 @@ fun InventoryScreen() {
                 showScanner = false
                 Toast.makeText(
                     context,
-                    "✓ ${codigo.tipo.etiqueta} detectado en ${codigo.tiempoEnSegundos}: ${codigo.valor}",
+                    "✓ ${codigo.tipo.etiqueta} detectado: ${codigo.valor}",
                     Toast.LENGTH_SHORT
                 ).show()
             },
