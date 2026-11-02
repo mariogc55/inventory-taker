@@ -70,7 +70,7 @@ fun GastosScreen() {
     val scope = rememberCoroutineScope()
 
     val gastosList = remember { mutableStateListOf<Gasto>() }
-    var cargando by remember { mutableStateOf(true) }
+    var cargando by remember { mutableStateOf(false) }
     var mensajeError by remember { mutableStateOf<String?>(null) }
     var showAddDialog by remember { mutableStateOf(false) }
 
@@ -79,11 +79,17 @@ fun GastosScreen() {
             cargando = true
             mensajeError = null
             try {
-                val gastos = withContext(Dispatchers.IO) {
-                    GastoRepository.obtenerGastos()
+                val gastosRemotos = withContext(Dispatchers.IO) {
+                    try {
+                        GastoRepository.obtenerGastos()
+                    } catch (e: Exception) {
+                        emptyList()
+                    }
                 }
-                gastosList.clear()
-                gastosList.addAll(gastos.map { it.toGasto() })
+                if (gastosRemotos.isNotEmpty()) {
+                    gastosList.clear()
+                    gastosList.addAll(gastosRemotos.map { it.toGasto() })
+                }
             } catch (e: Exception) {
                 mensajeError = "No se pudo conectar con el servidor"
             } finally {
@@ -123,7 +129,7 @@ fun GastosScreen() {
             Spacer(modifier = Modifier.height(16.dp))
 
             when {
-                cargando -> {
+                cargando && gastosList.isEmpty() -> {
                     Box(
                         modifier = Modifier.weight(1f).fillMaxWidth(),
                         contentAlignment = Alignment.Center
@@ -132,23 +138,6 @@ fun GastosScreen() {
                             CircularProgressIndicator(color = ScreenPrimaryBlue)
                             Spacer(modifier = Modifier.height(12.dp))
                             Text("Cargando desde el servidor...", color = Color(0xFF64748B), fontSize = 13.sp)
-                        }
-                    }
-                }
-                mensajeError != null -> {
-                    Box(
-                        modifier = Modifier.weight(1f).fillMaxWidth(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("✗ $mensajeError", color = Color(0xFFEF4444), fontSize = 14.sp)
-                            Spacer(modifier = Modifier.height(12.dp))
-                            Button(
-                                onClick = { cargarGastos() },
-                                colors = ButtonDefaults.buttonColors(containerColor = ScreenPrimaryBlue)
-                            ) {
-                                Text("Reintentar")
-                            }
                         }
                     }
                 }
@@ -194,16 +183,22 @@ fun GastosScreen() {
         DialogoRegistrarGasto(
             onDismiss = { showAddDialog = false },
             onGuardar = { dto ->
+                val nuevoGastoLocal = Gasto(
+                    id = (gastosList.size + 1),
+                    descripcion = dto.descripcion,
+                    monto = dto.monto,
+                    categoria = dto.categoria
+                )
+                gastosList.add(0, nuevoGastoLocal)
+                showAddDialog = false
+                Toast.makeText(context, "✓ Gasto guardado localmente", Toast.LENGTH_SHORT).show()
+
                 scope.launch {
-                    val ok = withContext(Dispatchers.IO) {
-                        GastoRepository.agregarGasto(dto)
-                    }
-                    showAddDialog = false
-                    if (ok) {
-                        Toast.makeText(context, "✓ Gasto guardado en el servidor", Toast.LENGTH_SHORT).show()
-                        cargarGastos()
-                    } else {
-                        Toast.makeText(context, "✗ No se pudo guardar en el servidor", Toast.LENGTH_SHORT).show()
+                    withContext(Dispatchers.IO) {
+                        try {
+                            GastoRepository.agregarGasto(dto)
+                        } catch (e: Exception) {
+                        }
                     }
                 }
             }
