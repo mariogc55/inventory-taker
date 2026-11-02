@@ -1,5 +1,6 @@
 package com.mariogc55.retrowave.tiendabarrioinventory.ui.screens
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -26,6 +27,7 @@ import androidx.compose.ui.unit.sp
 import com.mariogc55.retrowave.tiendabarrioinventory.R
 import com.mariogc55.retrowave.tiendabarrioinventory.model.Product
 import com.mariogc55.retrowave.tiendabarrioinventory.model.Sale
+import java.util.Calendar
 
 private val ScreenDarkBg = Color(0xFF0B0F17)
 private val ScreenCardBg = Color(0xFF151C28)
@@ -62,6 +64,11 @@ fun VentasScreen(
         if (searchQuery.isBlank()) salesHistory
         else salesHistory.filter { it.productName.lowercase().contains(searchQuery.lowercase().trim()) }
     }
+
+    val totalHoy = salesHistory.sumOf { it.totalPrice }
+    val totalMes = totalHoy
+    val totalMesAnterior = 802000.0
+    val ventasMesAntCount = 12
 
     Box(
         modifier = Modifier
@@ -116,7 +123,6 @@ fun VentasScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                val totalHoy = salesHistory.sumOf { it.totalPrice }
                 MetricCard(
                     modifier = Modifier.weight(1f),
                     title = "HOY",
@@ -124,8 +130,21 @@ fun VentasScreen(
                     subtext = "${salesHistory.size} ventas",
                     valueColor = ScreenGreenEmerald
                 )
-                MetricCard(modifier = Modifier.weight(1f), title = "ESTE MES", value = "$1.0M", subtext = "45 ventas", valueColor = ScreenGreenEmerald)
-                MetricCard(modifier = Modifier.weight(1f), title = "MES ANT.", value = "$802K", subtext = "↑ 29%", valueColor = ScreenTextColor, badgeColor = ScreenGreenEmerald)
+                MetricCard(
+                    modifier = Modifier.weight(1f),
+                    title = "ESTE MES",
+                    value = if (totalMes > 0) totalMes.toFigmaCurrency() else "$0",
+                    subtext = "${salesHistory.size} ventas",
+                    valueColor = ScreenGreenEmerald
+                )
+                MetricCard(
+                    modifier = Modifier.weight(1f),
+                    title = "MES ANT.",
+                    value = totalMesAnterior.toFigmaCurrency(),
+                    subtext = "$ventasMesAntCount ventas",
+                    valueColor = ScreenTextColor,
+                    badgeColor = ScreenGreenEmerald
+                )
             }
 
             Spacer(modifier = Modifier.height(10.dp))
@@ -346,11 +365,10 @@ fun FigmaSaleCard(sale: Sale) {
             Spacer(modifier = Modifier.width(10.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(sale.productName, color = ScreenTextColor, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                Text("${sale.quantity} × ${sale.unitPrice.toFigmaCurrency()} • 27 de oct, 06:44 p. m.", color = Color(0xFF94A3B8), fontSize = 11.sp)
+                Text("${sale.quantity} × ${sale.unitPrice.toFigmaCurrency()}", color = Color(0xFF94A3B8), fontSize = 11.sp)
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text(sale.totalPrice.toFigmaCurrency(), color = ScreenGreenEmerald, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                Text("+${(sale.totalPrice * 0.25).toFigmaCurrency()}", color = Color(0xFF64748B), fontSize = 10.sp)
             }
         }
     }
@@ -413,7 +431,7 @@ fun ScanCodeBottomSheet(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Escanear Código QR", color = ScreenTextColor, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Text("Escanear Código", color = ScreenTextColor, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 IconButton(onClick = onDismiss) {
                     Icon(Icons.Default.Close, contentDescription = null, tint = Color(0xFF94A3B8))
                 }
@@ -452,7 +470,7 @@ fun ScanCodeBottomSheet(
                 OutlinedTextField(
                     value = manualCodeInput,
                     onValueChange = { manualCodeInput = it },
-                    placeholder = { Text("Código de barras o QR", color = Color(0xFF64748B), fontSize = 12.sp) },
+                    placeholder = { Text("Código", color = Color(0xFF64748B), fontSize = 12.sp) },
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(8.dp),
                     colors = OutlinedTextFieldDefaults.colors(
@@ -469,7 +487,7 @@ fun ScanCodeBottomSheet(
                         if (found != null) {
                             onProductScanned(found)
                         } else {
-                            onError("X Producto no encontrado en inventario")
+                            onError("Producto no encontrado")
                             onDismiss()
                         }
                     },
@@ -594,7 +612,7 @@ fun RegisterSaleBottomSheet(
                     when {
                         product == null -> errorMessage = "Selecciona un producto"
                         quantity < 1 -> errorMessage = "La cantidad debe ser al menos 1"
-                        product.stock < quantity -> errorMessage = "Stock insuficiente para la cantidad solicitada"
+                        product.stock < quantity -> errorMessage = "Stock insuficiente"
                         else -> onConfirmSale(product, quantity)
                     }
                 },
