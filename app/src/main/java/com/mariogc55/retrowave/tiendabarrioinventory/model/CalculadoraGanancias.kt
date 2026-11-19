@@ -15,8 +15,17 @@ class CalculadoraGanancias(context: Context) {
     private val productoRepository = ProductoRepository(context)
 
     suspend fun calcular(): ResumenGanancias {
-        val productos = productoRepository.obtenerProductos()
-        val gastosList = GastoRepository.obtenerGastos()
+        val productos = try {
+            productoRepository.obtenerProductos()
+        } catch (_: Exception) {
+            emptyList()
+        }
+
+        val gastosList = try {
+            GastoRepository.obtenerGastos()
+        } catch (_: Exception) {
+            emptyList()
+        }
 
         val ingresos = productos.sumOf { it.sellingPrice * it.stock }
         val costoInventario = productos.sumOf { it.purchasePrice * it.stock }

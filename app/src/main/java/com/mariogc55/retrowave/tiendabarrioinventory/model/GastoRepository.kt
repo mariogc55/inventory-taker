@@ -19,6 +19,7 @@ object GastoRepository {
 
     private val baseUrl = "${BuildConfig.SUPABASE_URL}/rest/v1"
     private val apiKey = BuildConfig.SUPABASE_KEY
+    private val cacheLocal = mutableListOf<GastoDto>()
 
     private val cliente = HttpClient(Android) {
         install(ContentNegotiation) {
@@ -30,22 +31,35 @@ object GastoRepository {
     }
 
     suspend fun obtenerGastos(): List<GastoDto> {
-        return cliente.get("$baseUrl/gastos") {
-            header("apikey", apiKey)
-            header("Authorization", "Bearer $apiKey")
-            parameter("select", "*")
-            parameter("order", "id.asc")
-        }.body()
+        return try {
+            val remotos: List<GastoDto> = cliente.get("$baseUrl/gastos") {
+                header("apikey", apiKey)
+                header("Authorization", "Bearer $apiKey")
+                parameter("select", "*")
+                parameter("order", "id.asc")
+            }.body()
+
+            cacheLocal.clear()
+            cacheLocal.addAll(remotos)
+            remotos
+        } catch (_: Exception) {
+            cacheLocal.toList()
+        }
     }
 
     suspend fun agregarGasto(gasto: GastoDto): Boolean {
-        val respuesta = cliente.post("$baseUrl/gastos") {
-            header("apikey", apiKey)
-            header("Authorization", "Bearer $apiKey")
-            header("Prefer", "return=minimal")
-            contentType(ContentType.Application.Json)
-            setBody(gasto)
+        cacheLocal.add(gasto)
+        return try {
+            val respuesta = cliente.post("$baseUrl/gastos") {
+                header("apikey", apiKey)
+                header("Authorization", "Bearer $apiKey")
+                header("Prefer", "return=minimal")
+                contentType(ContentType.Application.Json)
+                setBody(gasto)
+            }
+            respuesta.status.value in 200..299
+        } catch (_: Exception) {
+            false
         }
-        return respuesta.status.value in 200..299
     }
 }
