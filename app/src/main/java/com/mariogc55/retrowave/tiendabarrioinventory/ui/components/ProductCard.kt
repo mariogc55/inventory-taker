@@ -9,11 +9,15 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.mariogc55.retrowave.tiendabarrioinventory.model.Product
+import java.io.File
 
 private val CardBg = Color(0xFF151C28)
 private val TextPrimary = Color(0xFFF1F5F9)
@@ -57,7 +61,18 @@ fun ProductCard(
                     .background(Color(0xFF1E293B), RoundedCornerShape(10.dp)),
                 contentAlignment = Alignment.Center
             ) {
-                Text(text = productEmoji, fontSize = 20.sp)
+                if (!product.imagePath.isNullOrBlank()) {
+                    AsyncImage(
+                        model = File(product.imagePath),
+                        contentDescription = product.name,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(RoundedCornerShape(10.dp)),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Text(text = productEmoji, fontSize = 20.sp)
+                }
             }
 
             Spacer(modifier = Modifier.width(12.dp))
