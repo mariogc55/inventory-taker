@@ -86,7 +86,7 @@ fun MainDashboardScreen() {
         Box(modifier = Modifier.padding(innerPadding)) {
             when (selectedTab) {
                 0 -> InventoryScreen()
-                1 -> VentasScreen(availableProducts = sharedProducts, salesHistory = sharedSales)
+                1 -> VentasScreen()
                 2 -> GastosScreen()
                 3 -> GananciasScreen()
                 4 -> ReportesScreen()

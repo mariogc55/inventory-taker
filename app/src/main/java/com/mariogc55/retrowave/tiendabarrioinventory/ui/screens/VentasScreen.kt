@@ -26,8 +26,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mariogc55.retrowave.tiendabarrioinventory.R
 import com.mariogc55.retrowave.tiendabarrioinventory.model.Product
+import com.mariogc55.retrowave.tiendabarrioinventory.model.ProductoRepository
 import com.mariogc55.retrowave.tiendabarrioinventory.model.Sale
+import com.mariogc55.retrowave.tiendabarrioinventory.model.VentaDto
+import com.mariogc55.retrowave.tiendabarrioinventory.model.VentaRepository
+import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Locale
 
 private val ScreenDarkBg = Color(0xFF0B0F17)
 private val ScreenCardBg = Color(0xFF151C28)
@@ -44,10 +53,33 @@ fun Double.toFigmaCurrency(): String {
 }
 
 @Composable
-fun VentasScreen(
-    availableProducts: MutableList<Product>,
-    salesHistory: MutableList<Sale>
-) {
+fun VentasScreen() {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val productoRepository = remember { ProductoRepository(context) }
+
+    val availableProducts = remember { mutableStateListOf<Product>() }
+    val salesHistory = remember { mutableStateListOf<Sale>() }
+
+    fun cargarDatos() {
+        scope.launch {
+            val prods = withContext(Dispatchers.IO) {
+                try { productoRepository.obtenerProductos().map { it.toProduct() } } catch (e: Exception) { emptyList() }
+            }
+            val vts = withContext(Dispatchers.IO) {
+                try { VentaRepository.obtenerVentas().map { it.toSale() } } catch (e: Exception) { emptyList() }
+            }
+            if (prods.isNotEmpty()) {
+                availableProducts.clear()
+                availableProducts.addAll(prods)
+            }
+            salesHistory.clear()
+            salesHistory.addAll(vts)
+        }
+    }
+
+    LaunchedEffect(Unit) { cargarDatos() }
+
     var activeTab by remember { mutableStateOf("Historial") }
     var searchQuery by remember { mutableStateOf("") }
     var showScanModal by remember { mutableStateOf(false) }
@@ -65,10 +97,20 @@ fun VentasScreen(
         else salesHistory.filter { it.productName.lowercase().contains(searchQuery.lowercase().trim()) }
     }
 
-    val totalHoy = salesHistory.sumOf { it.totalPrice }
-    val totalMes = totalHoy
-    val totalMesAnterior = 802000.0
-    val ventasMesAntCount = 12
+    val calMetrica = Calendar.getInstance()
+    val fmtDia = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+    val fmtMes = SimpleDateFormat("yyyy-MM", Locale.getDefault())
+    val hoyStr = fmtDia.format(calMetrica.time)
+    val mesStr = fmtMes.format(calMetrica.time)
+    calMetrica.add(Calendar.MONTH, -1)
+    val mesAntStr = fmtMes.format(calMetrica.time)
+
+    val totalHoy = salesHistory.filter { it.date.startsWith(hoyStr) }.sumOf { it.totalPrice }
+    val ventasHoyCount = salesHistory.count { it.date.startsWith(hoyStr) }
+    val totalMes = salesHistory.filter { it.date.startsWith(mesStr) }.sumOf { it.totalPrice }
+    val ventasMesCount = salesHistory.count { it.date.startsWith(mesStr) }
+    val totalMesAnterior = salesHistory.filter { it.date.startsWith(mesAntStr) }.sumOf { it.totalPrice }
+    val ventasMesAntCount = salesHistory.count { it.date.startsWith(mesAntStr) }
 
     Box(
         modifier = Modifier
@@ -127,14 +169,14 @@ fun VentasScreen(
                     modifier = Modifier.weight(1f),
                     title = "HOY",
                     value = totalHoy.toFigmaCurrency(),
-                    subtext = "${salesHistory.size} ventas",
+                    subtext = "$ventasHoyCount ventas",
                     valueColor = ScreenGreenEmerald
                 )
                 MetricCard(
                     modifier = Modifier.weight(1f),
                     title = "ESTE MES",
                     value = if (totalMes > 0) totalMes.toFigmaCurrency() else "$0",
-                    subtext = "${salesHistory.size} ventas",
+                    subtext = "$ventasMesCount ventas",
                     valueColor = ScreenGreenEmerald
                 )
                 MetricCard(
@@ -294,21 +336,27 @@ fun VentasScreen(
             initialProduct = preselectedProduct,
             onDismiss = { showRegisterModal = false },
             onConfirmSale = { selectedProduct, quantity ->
-                val index = availableProducts.indexOfFirst { it.id == selectedProduct.id }
-                if (index != -1) {
-                    availableProducts[index] = selectedProduct.copy(stock = selectedProduct.stock - quantity)
-                }
-                salesHistory.add(
-                    0,
-                    Sale(
-                        productId = selectedProduct.id,
-                        productName = selectedProduct.name,
-                        quantity = quantity,
-                        unitPrice = selectedProduct.sellingPrice
-                    )
-                )
-                alertMessage = "✓ Venta registrada exitosamente"
                 showRegisterModal = false
+                scope.launch {
+                    val ok = withContext(Dispatchers.IO) {
+                        try {
+                            val ventaOk = VentaRepository.agregarVenta(
+                                VentaDto.desdeVenta(
+                                    productId = selectedProduct.id,
+                                    productName = selectedProduct.name,
+                                    quantity = quantity,
+                                    unitPrice = selectedProduct.sellingPrice
+                                )
+                            )
+                            VentaRepository.descontarStock(selectedProduct.id, selectedProduct.stock - quantity)
+                            ventaOk
+                        } catch (e: Exception) {
+                            false
+                        }
+                    }
+                    alertMessage = if (ok) "✓ Venta registrada" else "✗ No se pudo registrar la venta"
+                    cargarDatos()
+                }
             }
         )
     }
