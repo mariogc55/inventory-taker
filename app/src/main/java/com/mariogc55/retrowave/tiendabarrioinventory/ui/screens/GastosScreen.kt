@@ -49,13 +49,11 @@ fun GastosScreen() {
     fun cargarGastos() {
         scope.launch {
             cargando = true
-            val gastosRemotos = withContext(Dispatchers.IO) {
-                try { GastoRepository.obtenerGastos() } catch (e: Exception) { emptyList() }
+            val gastosObtenidos = withContext(Dispatchers.IO) {
+                try { GastoRepository.obtenerGastos(context) } catch (_: Exception) { emptyList() }
             }
-            if (gastosRemotos.isNotEmpty()) {
-                gastosList.clear()
-                gastosList.addAll(gastosRemotos.map { it.toGasto() })
-            }
+            gastosList.clear()
+            gastosList.addAll(gastosObtenidos.map { it.toGasto() })
             cargando = false
         }
     }
@@ -124,9 +122,9 @@ fun GastosScreen() {
                 showAddDialog = false
                 scope.launch {
                     val ok = withContext(Dispatchers.IO) {
-                        try { GastoRepository.agregarGasto(dto) } catch (e: Exception) { false }
+                        try { GastoRepository.agregarGasto(dto, context) } catch (_: Exception) { false }
                     }
-                    Toast.makeText(context, if (ok) "✓ Gasto guardado" else "✗ No se pudo guardar en el servidor", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, if (ok) "✓ Gasto guardado" else "✗ No se pudo guardar", Toast.LENGTH_SHORT).show()
                     cargarGastos()
                 }
             }

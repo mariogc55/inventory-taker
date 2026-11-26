@@ -10,7 +10,7 @@ data class ResumenGanancias(
     val margenBruto: Double
 )
 
-class CalculadoraGanancias(context: Context) {
+class CalculadoraGanancias(private val context: Context) {
 
     private val productoRepository = ProductoRepository(context)
 
@@ -22,13 +22,13 @@ class CalculadoraGanancias(context: Context) {
         }
 
         val gastosList = try {
-            GastoRepository.obtenerGastos()
+            GastoRepository.obtenerGastos(context)
         } catch (_: Exception) {
             emptyList()
         }
 
         val ventas = try {
-            VentaRepository.obtenerVentas()
+            VentaRepository.obtenerVentas(context)
         } catch (_: Exception) {
             emptyList()
         }

@@ -67,7 +67,7 @@ fun VentasScreen() {
                 try { productoRepository.obtenerProductos().map { it.toProduct() } } catch (e: Exception) { emptyList() }
             }
             val vts = withContext(Dispatchers.IO) {
-                try { VentaRepository.obtenerVentas().map { it.toSale() } } catch (e: Exception) { emptyList() }
+                try { VentaRepository.obtenerVentas(context).map { it.toSale() } } catch (e: Exception) { emptyList() }
             }
             if (prods.isNotEmpty()) {
                 availableProducts.clear()
@@ -338,23 +338,33 @@ fun VentasScreen() {
             onConfirmSale = { selectedProduct, quantity ->
                 showRegisterModal = false
                 scope.launch {
+                    val nuevoStock = (selectedProduct.stock - quantity).coerceAtLeast(0)
                     val ok = withContext(Dispatchers.IO) {
                         try {
                             val ventaOk = VentaRepository.agregarVenta(
-                                VentaDto.desdeVenta(
+                                venta = VentaDto.desdeVenta(
                                     productId = selectedProduct.id,
                                     productName = selectedProduct.name,
                                     quantity = quantity,
                                     unitPrice = selectedProduct.sellingPrice
-                                )
+                                ),
+                                context = context
                             )
-                            VentaRepository.descontarStock(selectedProduct.id, selectedProduct.stock - quantity)
+                            VentaRepository.descontarStock(selectedProduct.id, nuevoStock)
                             ventaOk
-                        } catch (e: Exception) {
+                        } catch (_: Exception) {
                             false
                         }
                     }
-                    alertMessage = if (ok) "✓ Venta registrada" else "✗ No se pudo registrar la venta"
+                    if (ok) {
+                        val idx = availableProducts.indexOfFirst { it.id == selectedProduct.id }
+                        if (idx != -1) {
+                            availableProducts[idx] = selectedProduct.copy(stock = nuevoStock)
+                        }
+                        alertMessage = "✓ Venta registrada"
+                    } else {
+                        alertMessage = "✗ No se pudo registrar la venta"
+                    }
                     cargarDatos()
                 }
             }
