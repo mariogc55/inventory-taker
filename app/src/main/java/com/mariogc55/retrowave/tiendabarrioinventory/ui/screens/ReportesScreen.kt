@@ -178,7 +178,7 @@ private fun ContenidoReportes(resumen: ResumenGanancias, onExportar: () -> Unit)
 
         Row(modifier = Modifier.fillMaxWidth()) {
             CardTotal(
-                titulo = "INGRESOS (INVENTARIO)",
+                titulo = "INGRESOS (VENTAS)",
                 valor = "$" + "%,.0f".format(resumen.ingresos),
                 colorValor = Color(0xFF10B981),
                 modifier = Modifier.weight(1f)
@@ -225,7 +225,7 @@ private fun ContenidoReportes(resumen: ResumenGanancias, onExportar: () -> Unit)
                     color = Color.Gray
                 )
                 Spacer(modifier = Modifier.height(12.dp))
-                FilaDetalle("Ingresos por inventario", "$" + "%,.0f".format(resumen.ingresos), Color(0xFF10B981))
+                FilaDetalle("Ingresos por ventas", "$" + "%,.0f".format(resumen.ingresos), Color(0xFF10B981))
                 Spacer(modifier = Modifier.height(8.dp))
                 FilaDetalle("Costo del inventario", "$" + "%,.0f".format(resumen.costoInventario), Color.White)
                 Spacer(modifier = Modifier.height(8.dp))

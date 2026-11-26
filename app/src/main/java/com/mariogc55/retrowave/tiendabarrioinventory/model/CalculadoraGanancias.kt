@@ -27,14 +27,20 @@ class CalculadoraGanancias(context: Context) {
             emptyList()
         }
 
-        val ingresos = productos.sumOf { it.sellingPrice * it.stock }
+        val ventas = try {
+            VentaRepository.obtenerVentas()
+        } catch (_: Exception) {
+            emptyList()
+        }
+
+        val ingresos = ventas.sumOf { it.totalPrice }
         val costoInventario = productos.sumOf { it.purchasePrice * it.stock }
         val gastos = gastosList.sumOf { it.monto }
 
         val gananciaNeta = ingresos - gastos
 
         val margenBruto = if (ingresos > 0.0) {
-            ((ingresos - costoInventario) / ingresos) * 100
+            (gananciaNeta / ingresos) * 100
         } else {
             0.0
         }
